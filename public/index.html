@@ -1,0 +1,1139 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>VoiceSchedule — AI Calendar Assistant</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg: #0d0f12;
+      --surface: #161820;
+      --surface2: #1e2028;
+      --border: rgba(255,255,255,0.07);
+      --border2: rgba(255,255,255,0.14);
+      --text: #f0efe8;
+      --muted: #8a8880;
+      --accent: #7c6ef5;
+      --accent2: #a99ef8;
+      --green: #3ecf8e;
+      --red: #f56565;
+      --amber: #f5a623;
+    }
+
+    html, body {
+      height: 100%;
+      background: var(--bg);
+      color: var(--text);
+      font-family: 'DM Sans', sans-serif;
+      font-weight: 300;
+      overflow: hidden;
+    }
+
+    .app {
+      height: 100vh;
+      display: grid;
+      grid-template-columns: 340px 1fr;
+    }
+
+    /* ── SIDEBAR ── */
+    .sidebar {
+      border-right: 1px solid var(--border);
+      display: flex;
+      flex-direction: column;
+      padding: 0;
+      background: var(--surface);
+      position: relative;
+      overflow: hidden;
+    }
+
+    .sidebar::before {
+      content: '';
+      position: absolute;
+      top: -120px;
+      left: -60px;
+      width: 300px;
+      height: 300px;
+      background: radial-gradient(circle, rgba(124,110,245,0.15) 0%, transparent 70%);
+      pointer-events: none;
+    }
+
+    .sidebar-header {
+      padding: 32px 28px 24px;
+      border-bottom: 1px solid var(--border);
+    }
+
+    .logo {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      margin-bottom: 6px;
+    }
+
+    .logo-icon {
+      width: 32px;
+      height: 32px;
+      background: linear-gradient(135deg, var(--accent), var(--accent2));
+      border-radius: 8px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .logo-text {
+      font-family: 'Instrument Serif', serif;
+      font-size: 20px;
+      letter-spacing: -0.3px;
+    }
+
+    .logo-sub {
+      font-size: 12px;
+      color: var(--muted);
+      letter-spacing: 0.5px;
+    }
+
+    /* ── MIC SECTION ── */
+    .mic-section {
+      padding: 32px 28px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 20px;
+      border-bottom: 1px solid var(--border);
+    }
+
+    .mic-container {
+      position: relative;
+      width: 100px;
+      height: 100px;
+    }
+
+    .mic-ring {
+      position: absolute;
+      inset: 0;
+      border-radius: 50%;
+      border: 1.5px solid var(--border2);
+      transition: all 0.3s ease;
+    }
+
+    .mic-ring.pulse {
+      animation: ringPulse 1.4s ease-out infinite;
+      border-color: var(--accent);
+    }
+
+    @keyframes ringPulse {
+      0% { transform: scale(1); opacity: 0.8; }
+      100% { transform: scale(1.6); opacity: 0; }
+    }
+
+    .mic-btn {
+      position: absolute;
+      inset: 8px;
+      border-radius: 50%;
+      background: var(--surface2);
+      border: 1.5px solid var(--border2);
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: all 0.2s ease;
+      color: var(--muted);
+    }
+
+    .mic-btn:hover { border-color: var(--accent); color: var(--accent2); }
+    .mic-btn.active { background: var(--accent); border-color: var(--accent); color: white; }
+    .mic-btn.active svg { animation: micPulse 0.8s ease-in-out infinite alternate; }
+
+    @keyframes micPulse {
+      from { transform: scale(1); }
+      to { transform: scale(1.15); }
+    }
+
+    .mic-btn svg { width: 24px; height: 24px; }
+
+    .mic-status {
+      font-size: 13px;
+      color: var(--muted);
+      text-align: center;
+      letter-spacing: 0.3px;
+    }
+
+    .mic-status.listening { color: var(--accent2); }
+    .mic-status.speaking { color: var(--green); }
+
+    /* ── TRANSCRIPT ── */
+    .transcript-section {
+      flex: 1;
+      padding: 20px 28px;
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+
+    .section-label {
+      font-size: 10px;
+      letter-spacing: 1.2px;
+      text-transform: uppercase;
+      color: var(--muted);
+      font-weight: 500;
+    }
+
+    .transcript-box {
+      flex: 1;
+      overflow-y: auto;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+
+    .transcript-box::-webkit-scrollbar { width: 3px; }
+    .transcript-box::-webkit-scrollbar-track { background: transparent; }
+    .transcript-box::-webkit-scrollbar-thumb { background: var(--border2); border-radius: 2px; }
+
+    .bubble {
+      padding: 10px 14px;
+      border-radius: 12px;
+      font-size: 13px;
+      line-height: 1.5;
+      animation: fadeUp 0.3s ease;
+      max-width: 100%;
+    }
+
+    @keyframes fadeUp {
+      from { opacity: 0; transform: translateY(8px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    .bubble.user {
+      background: var(--surface2);
+      border: 1px solid var(--border);
+      align-self: flex-end;
+      color: var(--text);
+    }
+
+    .bubble.assistant {
+      background: rgba(124,110,245,0.12);
+      border: 1px solid rgba(124,110,245,0.2);
+      align-self: flex-start;
+      color: var(--accent2);
+    }
+
+    .bubble.system {
+      background: rgba(62,207,142,0.08);
+      border: 1px solid rgba(62,207,142,0.15);
+      align-self: center;
+      color: var(--green);
+      font-size: 12px;
+      text-align: center;
+    }
+
+    /* ── CONTROLS ── */
+    .controls {
+      padding: 20px 28px;
+      border-top: 1px solid var(--border);
+      display: flex;
+      gap: 8px;
+    }
+
+    .btn {
+      flex: 1;
+      padding: 10px;
+      border-radius: 8px;
+      border: 1px solid var(--border2);
+      background: transparent;
+      color: var(--muted);
+      font-family: 'DM Sans', sans-serif;
+      font-size: 12px;
+      cursor: pointer;
+      transition: all 0.2s;
+      letter-spacing: 0.3px;
+    }
+
+    .btn:hover { background: var(--surface2); color: var(--text); border-color: var(--border2); }
+    .btn.primary { background: var(--accent); border-color: var(--accent); color: white; font-weight: 500; }
+    .btn.primary:hover { opacity: 0.88; }
+    .btn.danger { border-color: var(--red); color: var(--red); }
+    .btn.danger:hover { background: rgba(245,101,101,0.1); }
+
+    /* ── MAIN CONTENT ── */
+    .main {
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+      background: var(--bg);
+    }
+
+    .main-header {
+      padding: 28px 40px 20px;
+      border-bottom: 1px solid var(--border);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    .main-title {
+      font-family: 'Instrument Serif', serif;
+      font-size: 28px;
+      letter-spacing: -0.5px;
+      font-weight: 400;
+    }
+
+    .main-title em { color: var(--accent2); font-style: italic; }
+
+    .status-pill {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      padding: 6px 14px;
+      border-radius: 100px;
+      border: 1px solid var(--border2);
+      font-size: 12px;
+      color: var(--muted);
+    }
+
+    .status-dot {
+      width: 6px;
+      height: 6px;
+      border-radius: 50%;
+      background: var(--muted);
+      transition: all 0.3s;
+    }
+
+    .status-dot.green { background: var(--green); box-shadow: 0 0 6px var(--green); }
+    .status-dot.purple { background: var(--accent); box-shadow: 0 0 6px var(--accent); animation: blink 1s infinite; }
+
+    @keyframes blink { 0%, 100% { opacity: 1; } 50% { opacity: 0.3; } }
+
+    /* ── EVENT CARD ── */
+    .event-area {
+      flex: 1;
+      padding: 40px;
+      overflow-y: auto;
+      display: flex;
+      flex-direction: column;
+      gap: 24px;
+    }
+
+    .event-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      padding: 28px 32px;
+      transition: all 0.4s ease;
+      animation: slideIn 0.5s ease;
+    }
+
+    @keyframes slideIn {
+      from { opacity: 0; transform: translateY(16px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    .event-card.confirmed {
+      border-color: rgba(62,207,142,0.3);
+      background: rgba(62,207,142,0.04);
+    }
+
+    .card-label {
+      font-size: 10px;
+      letter-spacing: 1.5px;
+      text-transform: uppercase;
+      color: var(--muted);
+      margin-bottom: 20px;
+      font-weight: 500;
+    }
+
+    .event-title-display {
+      font-family: 'Instrument Serif', serif;
+      font-size: 32px;
+      font-weight: 400;
+      letter-spacing: -0.5px;
+      margin-bottom: 24px;
+      line-height: 1.2;
+    }
+
+    .event-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 16px;
+    }
+
+    .event-field {
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+    }
+
+    .field-label {
+      font-size: 11px;
+      color: var(--muted);
+      letter-spacing: 0.5px;
+      text-transform: uppercase;
+    }
+
+    .field-value {
+      font-size: 15px;
+      color: var(--text);
+      font-weight: 400;
+    }
+
+    .confirmed-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 6px 14px;
+      background: rgba(62,207,142,0.12);
+      border: 1px solid rgba(62,207,142,0.25);
+      border-radius: 100px;
+      color: var(--green);
+      font-size: 12px;
+      margin-top: 20px;
+    }
+
+    .cal-links {
+      display: flex;
+      gap: 8px;
+      margin-top: 20px;
+      flex-wrap: wrap;
+    }
+
+    .cal-btn {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      padding: 8px 16px;
+      border-radius: 8px;
+      border: 1px solid var(--border2);
+      background: transparent;
+      color: var(--text);
+      font-family: 'DM Sans', sans-serif;
+      font-size: 13px;
+      text-decoration: none;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+
+    .cal-btn:hover { background: var(--surface2); border-color: var(--accent); color: var(--accent2); }
+    .cal-btn svg { width: 14px; height: 14px; }
+
+    /* ── HOWTO ── */
+    .howto {
+      max-width: 480px;
+    }
+
+    .howto-title {
+      font-family: 'Instrument Serif', serif;
+      font-size: 22px;
+      font-weight: 400;
+      letter-spacing: -0.3px;
+      margin-bottom: 20px;
+      color: var(--muted);
+    }
+
+    .steps {
+      display: flex;
+      flex-direction: column;
+      gap: 14px;
+    }
+
+    .step {
+      display: flex;
+      gap: 14px;
+      align-items: flex-start;
+    }
+
+    .step-num {
+      width: 24px;
+      height: 24px;
+      border-radius: 6px;
+      background: var(--surface2);
+      border: 1px solid var(--border2);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 11px;
+      color: var(--accent2);
+      flex-shrink: 0;
+      margin-top: 1px;
+    }
+
+    .step-text {
+      font-size: 14px;
+      color: var(--muted);
+      line-height: 1.6;
+    }
+
+    .step-text strong { color: var(--text); font-weight: 400; }
+
+    /* ── WAVEFORM ── */
+    .waveform {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 3px;
+      height: 24px;
+    }
+
+    .wave-bar {
+      width: 3px;
+      background: var(--accent);
+      border-radius: 2px;
+      height: 4px;
+      transition: height 0.1s;
+    }
+
+    .wave-bar.active {
+      animation: wave 0.8s ease-in-out infinite;
+    }
+
+    .wave-bar:nth-child(1).active { animation-delay: 0s; }
+    .wave-bar:nth-child(2).active { animation-delay: 0.1s; }
+    .wave-bar:nth-child(3).active { animation-delay: 0.2s; }
+    .wave-bar:nth-child(4).active { animation-delay: 0.1s; }
+    .wave-bar:nth-child(5).active { animation-delay: 0s; }
+
+    @keyframes wave {
+      0%, 100% { height: 4px; }
+      50% { height: 18px; }
+    }
+
+    /* ── TEXT INPUT FALLBACK ── */
+    .text-input-area {
+      padding: 16px 28px;
+      border-top: 1px solid var(--border);
+    }
+
+    .text-input-wrap {
+      display: flex;
+      gap: 8px;
+    }
+
+    .text-input {
+      flex: 1;
+      background: var(--surface2);
+      border: 1px solid var(--border2);
+      border-radius: 8px;
+      padding: 10px 14px;
+      color: var(--text);
+      font-family: 'DM Sans', sans-serif;
+      font-size: 13px;
+      outline: none;
+    }
+
+    .text-input::placeholder { color: var(--muted); }
+    .text-input:focus { border-color: var(--accent); }
+
+    .send-btn {
+      background: var(--accent);
+      border: none;
+      border-radius: 8px;
+      padding: 10px 16px;
+      color: white;
+      cursor: pointer;
+      font-size: 13px;
+      font-family: 'DM Sans', sans-serif;
+      transition: opacity 0.2s;
+    }
+
+    .send-btn:hover { opacity: 0.85; }
+
+    /* ── MODAL ── */
+    .modal-overlay {
+      display: none;
+      position: fixed;
+      inset: 0;
+      background: rgba(0,0,0,0.7);
+      z-index: 100;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .modal-overlay.show { display: flex; }
+
+    .modal {
+      background: var(--surface);
+      border: 1px solid var(--border2);
+      border-radius: 16px;
+      padding: 32px;
+      max-width: 420px;
+      width: 90%;
+    }
+
+    .modal h3 {
+      font-family: 'Instrument Serif', serif;
+      font-size: 22px;
+      font-weight: 400;
+      margin-bottom: 8px;
+    }
+
+    .modal p { font-size: 14px; color: var(--muted); margin-bottom: 20px; line-height: 1.6; }
+
+    .modal-input {
+      width: 100%;
+      background: var(--surface2);
+      border: 1px solid var(--border2);
+      border-radius: 8px;
+      padding: 12px 14px;
+      color: var(--text);
+      font-family: 'DM Sans', sans-serif;
+      font-size: 14px;
+      outline: none;
+      margin-bottom: 16px;
+    }
+
+    .modal-input:focus { border-color: var(--accent); }
+
+    .modal-actions { display: flex; gap: 8px; justify-content: flex-end; }
+
+    .tag {
+      display: inline-block;
+      padding: 2px 8px;
+      border-radius: 4px;
+      font-size: 11px;
+      background: rgba(124,110,245,0.15);
+      color: var(--accent2);
+      border: 1px solid rgba(124,110,245,0.25);
+      margin-bottom: 6px;
+    }
+
+    @media (max-width: 768px) {
+      .app { grid-template-columns: 1fr; }
+      .main { display: none; }
+      .sidebar { height: 100vh; }
+    }
+  </style>
+</head>
+<body>
+
+<div class="app">
+  <!-- SIDEBAR: Voice Interface -->
+  <aside class="sidebar">
+    <div class="sidebar-header">
+      <div class="logo">
+        <div class="logo-icon">
+          <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
+            <circle cx="8" cy="5" r="3" fill="white" opacity="0.9"/>
+            <path d="M2 14c0-3.314 2.686-5 6-5s6 1.686 6 5" stroke="white" stroke-width="1.5" stroke-linecap="round" opacity="0.7"/>
+          </svg>
+        </div>
+        <span class="logo-text">VoiceSchedule</span>
+      </div>
+      <div class="logo-sub">AI Calendar Assistant</div>
+    </div>
+
+    <div class="mic-section">
+      <div class="mic-container">
+        <div class="mic-ring" id="micRing"></div>
+        <button class="mic-btn" id="micBtn" onclick="toggleListening()">
+          <svg id="micIcon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round">
+            <path d="M12 2a3 3 0 0 1 3 3v7a3 3 0 0 1-6 0V5a3 3 0 0 1 3-3z"/>
+            <path d="M19 10v2a7 7 0 0 1-14 0v-2"/>
+            <line x1="12" y1="19" x2="12" y2="23"/>
+            <line x1="8" y1="23" x2="16" y2="23"/>
+          </svg>
+        </button>
+      </div>
+
+      <div class="waveform" id="waveform">
+        <div class="wave-bar" id="wb1"></div>
+        <div class="wave-bar" id="wb2"></div>
+        <div class="wave-bar" id="wb3"></div>
+        <div class="wave-bar" id="wb4"></div>
+        <div class="wave-bar" id="wb5"></div>
+      </div>
+
+      <div class="mic-status" id="micStatus">Click the mic to start</div>
+    </div>
+
+    <div class="transcript-section">
+      <div class="section-label">Conversation</div>
+      <div class="transcript-box" id="transcriptBox">
+        <div class="bubble assistant">Hello! I'm your scheduling assistant. Click the mic and tell me when you'd like to schedule a meeting.</div>
+      </div>
+    </div>
+
+    <div class="text-input-area">
+      <div class="text-input-wrap">
+        <input class="text-input" id="textInput" placeholder="Or type here..." onkeydown="handleKeydown(event)" />
+        <button class="send-btn" onclick="sendText()">Send</button>
+      </div>
+    </div>
+
+    <div class="controls">
+      <button class="btn" onclick="resetConversation()">Reset</button>
+      <button class="btn primary" id="confirmBtn" onclick="confirmBooking()" style="display:none">Confirm Booking</button>
+    </div>
+  </aside>
+
+  <!-- MAIN: Event Display -->
+  <main class="main">
+    <div class="main-header">
+      <div class="main-title">Your <em>upcoming</em> event</div>
+      <div class="status-pill">
+        <div class="status-dot" id="statusDot"></div>
+        <span id="statusText">Ready</span>
+      </div>
+    </div>
+
+    <div class="event-area" id="eventArea">
+      <div class="howto">
+        <div class="howto-title">Schedule a meeting with your voice</div>
+        <div class="steps">
+          <div class="step">
+            <div class="step-num">1</div>
+            <div class="step-text"><strong>Click the microphone</strong> on the left to start a conversation</div>
+          </div>
+          <div class="step">
+            <div class="step-num">2</div>
+            <div class="step-text"><strong>Tell the assistant</strong> your name, preferred date & time, and a meeting title</div>
+          </div>
+          <div class="step">
+            <div class="step-num">3</div>
+            <div class="step-text"><strong>Review the details</strong> shown here and confirm when ready</div>
+          </div>
+          <div class="step">
+            <div class="step-num">4</div>
+            <div class="step-text"><strong>Add to your calendar</strong> with a single click — Google Calendar, Outlook, or download an .ics file</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </main>
+</div>
+
+<!-- No API key modal needed — key lives on the server -->
+
+<script>
+// ── STATE ──
+// API key lives on the server — no key needed in the browser
+const API_BASE = '';   // empty = same origin; set to 'http://localhost:8000' for local dev with separate frontend
+let conversationHistory = [];
+let isListening = false;
+let isSpeaking = false;
+let recognition = null;
+let synthesis = window.speechSynthesis;
+let eventData = {};
+let pendingConfirmation = false;
+
+// ── INIT ──
+window.addEventListener('load', async () => {
+  // Check server health before starting
+  try {
+    const res = await fetch(`${API_BASE}/health`);
+    if (!res.ok) throw new Error('Server unhealthy');
+    const data = await res.json();
+    if (!data.api_key_configured) {
+      showServerError('Server is running but ANTHROPIC_API_KEY is not set. Add it to your .env file and restart.');
+      return;
+    }
+  } catch (e) {
+    showServerError('Cannot reach the VoiceSchedule server. Make sure the FastAPI backend is running (uvicorn backend.main:app).');
+    return;
+  }
+  initRecognition();
+  startConversation();
+});
+
+function showServerError(msg) {
+  document.getElementById('transcriptBox').innerHTML =
+    `<div class="bubble system" style="color:var(--red);border-color:rgba(245,101,101,0.25);background:rgba(245,101,101,0.08)">${msg}</div>`;
+  setStatus('', 'Server error');
+}
+
+function initRecognition() {
+  const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+  if (!SpeechRecognition) {
+    document.getElementById('micStatus').textContent = 'Voice not supported — use text input';
+    document.getElementById('micBtn').disabled = true;
+    return;
+  }
+
+  recognition = new SpeechRecognition();
+  recognition.continuous = false;
+  recognition.interimResults = true;
+  recognition.lang = 'en-US';
+
+  recognition.onstart = () => {
+    setListeningState(true);
+  };
+
+  recognition.onresult = (e) => {
+    const transcript = Array.from(e.results).map(r => r[0].transcript).join('');
+    if (e.results[e.results.length - 1].isFinal) {
+      addBubble('user', transcript);
+      sendToAI(transcript);
+    }
+  };
+
+  recognition.onend = () => {
+    setListeningState(false);
+  };
+
+  recognition.onerror = (e) => {
+    setListeningState(false);
+    if (e.error !== 'aborted') {
+      addBubble('system', `Mic error: ${e.error}. Try typing instead.`);
+    }
+  };
+}
+
+function setListeningState(listening) {
+  isListening = listening;
+  const btn = document.getElementById('micBtn');
+  const ring = document.getElementById('micRing');
+  const status = document.getElementById('micStatus');
+  const bars = document.querySelectorAll('.wave-bar');
+
+  if (listening) {
+    btn.classList.add('active');
+    ring.classList.add('pulse');
+    status.textContent = 'Listening...';
+    status.className = 'mic-status listening';
+    bars.forEach(b => b.classList.add('active'));
+    setStatus('purple', 'Listening');
+  } else {
+    btn.classList.remove('active');
+    ring.classList.remove('pulse');
+    status.textContent = isSpeaking ? 'Speaking...' : 'Click to speak';
+    status.className = isSpeaking ? 'mic-status speaking' : 'mic-status';
+    bars.forEach(b => b.classList.remove('active'));
+  }
+}
+
+function toggleListening() {
+  if (!recognition) {
+    addBubble('system', 'Voice not supported in this browser. Please use the text input below.');
+    return;
+  }
+  if (isListening) {
+    recognition.stop();
+  } else {
+    if (synthesis.speaking) synthesis.cancel();
+    recognition.start();
+  }
+}
+
+// ── AI COMMUNICATION (via FastAPI backend) ──
+async function sendToAI(userMessage) {
+  conversationHistory.push({ role: 'user', content: userMessage });
+  setStatus('purple', 'Thinking');
+
+  try {
+    const response = await fetch(`${API_BASE}/chat`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ messages: conversationHistory })
+    });
+
+    if (!response.ok) {
+      const err = await response.json();
+      throw new Error(err.detail || `Server error ${response.status}`);
+    }
+
+    const data = await response.json();
+    // Backend returns { reply: string, event_data: object|null }
+    const assistantMessage = data.reply;
+
+    conversationHistory.push({ role: 'assistant', content: assistantMessage });
+
+    if (data.event_data) {
+      eventData = data.event_data;
+      renderEventCard(eventData);
+      document.getElementById('confirmBtn').style.display = '';
+      pendingConfirmation = true;
+    }
+
+    addBubble('assistant', assistantMessage);
+    speak(assistantMessage);
+    setStatus(pendingConfirmation ? 'green' : '', pendingConfirmation ? 'Event ready' : 'Ready');
+
+  } catch (err) {
+    addBubble('system', `Error: ${err.message}`);
+    setStatus('', 'Error');
+    console.error(err);
+  }
+}
+
+// ── SPEECH SYNTHESIS ──
+function speak(text) {
+  if (!synthesis) return;
+  synthesis.cancel();
+
+  const utter = new SpeechSynthesisUtterance(text);
+  utter.rate = 1.05;
+  utter.pitch = 1;
+
+  const voices = synthesis.getVoices();
+  const preferred = voices.find(v =>
+    v.name.includes('Samantha') ||
+    v.name.includes('Karen') ||
+    v.name.includes('Moira') ||
+    (v.lang === 'en-US' && v.localService)
+  ) || voices.find(v => v.lang.startsWith('en'));
+
+  if (preferred) utter.voice = preferred;
+
+  utter.onstart = () => {
+    isSpeaking = true;
+    if (!isListening) {
+      document.getElementById('micStatus').textContent = 'Speaking...';
+      document.getElementById('micStatus').className = 'mic-status speaking';
+      setStatus('green', 'Speaking');
+    }
+  };
+
+  utter.onend = () => {
+    isSpeaking = false;
+    if (!isListening) {
+      document.getElementById('micStatus').textContent = 'Click to speak';
+      document.getElementById('micStatus').className = 'mic-status';
+    }
+    // Auto-listen after speaking
+    if (recognition && !isListening && !pendingConfirmation) {
+      setTimeout(() => recognition.start(), 300);
+    }
+  };
+
+  synthesis.speak(utter);
+}
+
+// ── UI HELPERS ──
+function addBubble(role, text) {
+  const box = document.getElementById('transcriptBox');
+  const div = document.createElement('div');
+  div.className = `bubble ${role}`;
+  div.textContent = text;
+  box.appendChild(div);
+  box.scrollTop = box.scrollHeight;
+}
+
+function setStatus(color, text) {
+  const dot = document.getElementById('statusDot');
+  const label = document.getElementById('statusText');
+  dot.className = 'status-dot' + (color ? ` ${color}` : '');
+  label.textContent = text;
+}
+
+function handleKeydown(e) {
+  if (e.key === 'Enter') sendText();
+}
+
+function sendText() {
+  const input = document.getElementById('textInput');
+  const text = input.value.trim();
+  if (!text) return;
+  input.value = '';
+  addBubble('user', text);
+  sendToAI(text);
+}
+
+// ── EVENT CARD ──
+function renderEventCard(ev) {
+  const area = document.getElementById('eventArea');
+
+  const dateObj = ev.date ? new Date(ev.date + 'T' + (ev.time || '09:00') + ':00') : new Date();
+  const endDate = new Date(dateObj.getTime() + (ev.duration || 60) * 60000);
+
+  const dateStr = dateObj.toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
+  const timeStr = dateObj.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' });
+  const endStr = endDate.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' });
+
+  area.innerHTML = `
+    <div class="event-card" id="eventCard">
+      <div class="card-label">Scheduled event</div>
+      <div class="event-title-display">${escHtml(ev.title || 'Meeting')}</div>
+      <div class="event-grid">
+        <div class="event-field">
+          <div class="field-label">Organizer</div>
+          <div class="field-value">${escHtml(ev.name || '—')}</div>
+        </div>
+        <div class="event-field">
+          <div class="field-label">Duration</div>
+          <div class="field-value">${ev.duration || 60} minutes</div>
+        </div>
+        <div class="event-field">
+          <div class="field-label">Date</div>
+          <div class="field-value">${dateStr}</div>
+        </div>
+        <div class="event-field">
+          <div class="field-label">Time</div>
+          <div class="field-value">${timeStr} – ${endStr}</div>
+        </div>
+      </div>
+      ${ev.description ? `<p style="margin-top:16px; font-size:14px; color:var(--muted); line-height:1.6">${escHtml(ev.description)}</p>` : ''}
+    </div>`;
+}
+
+function renderConfirmedCard(ev) {
+  const dateObj = new Date(ev.date + 'T' + (ev.time || '09:00') + ':00');
+  const endDate = new Date(dateObj.getTime() + (ev.duration || 60) * 60000);
+  const dateStr = dateObj.toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
+  const timeStr = dateObj.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' });
+  const endStr = endDate.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' });
+
+  const gcUrl = buildGoogleCalURL(ev, dateObj, endDate);
+  const icsData = buildICS(ev, dateObj, endDate);
+  const outlookUrl = buildOutlookURL(ev, dateObj, endDate);
+
+  const area = document.getElementById('eventArea');
+  area.innerHTML = `
+    <div class="event-card confirmed" id="eventCard">
+      <div class="card-label">Confirmed event</div>
+      <div class="event-title-display">${escHtml(ev.title || 'Meeting')}</div>
+      <div class="event-grid">
+        <div class="event-field">
+          <div class="field-label">Organizer</div>
+          <div class="field-value">${escHtml(ev.name || '—')}</div>
+        </div>
+        <div class="event-field">
+          <div class="field-label">Duration</div>
+          <div class="field-value">${ev.duration || 60} minutes</div>
+        </div>
+        <div class="event-field">
+          <div class="field-label">Date</div>
+          <div class="field-value">${dateStr}</div>
+        </div>
+        <div class="event-field">
+          <div class="field-label">Time</div>
+          <div class="field-value">${timeStr} – ${endStr}</div>
+        </div>
+      </div>
+      <div class="confirmed-badge">
+        <svg width="12" height="12" viewBox="0 0 12 12" fill="none"><circle cx="6" cy="6" r="5" stroke="currentColor" stroke-width="1.2"/><path d="M3.5 6l2 2 3-3" stroke="currentColor" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        Event confirmed
+      </div>
+      <div class="cal-links">
+        <a class="cal-btn" href="${gcUrl}" target="_blank">
+          <svg viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="1.2"><rect x="1" y="2" width="12" height="11" rx="1.5"/><line x1="1" y1="5" x2="13" y2="5"/><line x1="4" y1="1" x2="4" y2="3"/><line x1="10" y1="1" x2="10" y2="3"/></svg>
+          Google Calendar
+        </a>
+        <a class="cal-btn" href="${outlookUrl}" target="_blank">
+          <svg viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="1.2"><rect x="1" y="2" width="12" height="11" rx="1.5"/><line x1="1" y1="5" x2="13" y2="5"/><line x1="4" y1="1" x2="4" y2="3"/><line x1="10" y1="1" x2="10" y2="3"/></svg>
+          Outlook
+        </a>
+        <button class="cal-btn" onclick="downloadICS('${encodeURIComponent(icsData)}', '${escHtml(ev.title || 'meeting')}')">
+          <svg viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="1.2"><path d="M7 1v8M4 6l3 3 3-3"/><path d="M2 11h10"/></svg>
+          Download .ics
+        </button>
+      </div>
+    </div>`;
+}
+
+// ── CALENDAR LINKS ──
+function buildGoogleCalURL(ev, start, end) {
+  const fmt = d => d.toISOString().replace(/[-:]/g,'').split('.')[0]+'Z';
+  const params = new URLSearchParams({
+    action: 'TEMPLATE',
+    text: ev.title || 'Meeting',
+    dates: `${fmt(start)}/${fmt(end)}`,
+    details: ev.description || `Scheduled by ${ev.name || 'VoiceSchedule'}`,
+  });
+  return `https://calendar.google.com/calendar/render?${params}`;
+}
+
+function buildOutlookURL(ev, start, end) {
+  const fmt = d => d.toISOString().split('.')[0];
+  const params = new URLSearchParams({
+    path: '/calendar/action/compose',
+    rru: 'addevent',
+    subject: ev.title || 'Meeting',
+    startdt: fmt(start),
+    enddt: fmt(end),
+    body: ev.description || `Scheduled by ${ev.name || 'VoiceSchedule'}`,
+  });
+  return `https://outlook.live.com/calendar/0/deeplink/compose?${params}`;
+}
+
+function buildICS(ev, start, end) {
+  const fmt = d => d.toISOString().replace(/[-:]/g,'').split('.')[0]+'Z';
+  const uid = `${Date.now()}@voiceschedule`;
+  return [
+    'BEGIN:VCALENDAR',
+    'VERSION:2.0',
+    'PRODID:-//VoiceSchedule//EN',
+    'CALSCALE:GREGORIAN',
+    'METHOD:PUBLISH',
+    'BEGIN:VEVENT',
+    `UID:${uid}`,
+    `DTSTAMP:${fmt(new Date())}`,
+    `DTSTART:${fmt(start)}`,
+    `DTEND:${fmt(end)}`,
+    `SUMMARY:${ev.title || 'Meeting'}`,
+    `DESCRIPTION:${ev.description || 'Scheduled via VoiceSchedule'}`,
+    `ORGANIZER:CN=${ev.name || 'VoiceSchedule'}`,
+    'END:VEVENT',
+    'END:VCALENDAR'
+  ].join('\r\n');
+}
+
+function downloadICS(encodedData, title) {
+  const data = decodeURIComponent(encodedData);
+  const blob = new Blob([data], { type: 'text/calendar' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = `${title.replace(/[^a-z0-9]/gi, '_')}.ics`;
+  a.click();
+  URL.revokeObjectURL(url);
+}
+
+// ── CONFIRM BOOKING ──
+function confirmBooking() {
+  if (!eventData || !eventData.date) {
+    addBubble('system', 'No event data yet. Please complete the conversation first.');
+    return;
+  }
+
+  renderConfirmedCard(eventData);
+  pendingConfirmation = false;
+  document.getElementById('confirmBtn').style.display = 'none';
+
+  addBubble('system', '✓ Event confirmed! Add it to your calendar using the buttons on the right.');
+  setStatus('green', 'Confirmed');
+
+  speak('Your event has been confirmed! You can now add it to Google Calendar, Outlook, or download an ICS file.');
+}
+
+// ── RESET ──
+function startConversation() {
+  conversationHistory = [];
+  const greeting = "Hi there! I'm your scheduling assistant. What's your name, and when would you like to schedule a meeting?";
+  conversationHistory.push({ role: 'assistant', content: greeting });
+  document.getElementById('transcriptBox').innerHTML = `<div class="bubble assistant">${escHtml(greeting)}</div>`;
+  setStatus('', 'Ready');
+
+  if (synthesis) {
+    synthesis.getVoices();
+    setTimeout(() => speak(greeting), 500);
+  }
+}
+
+function resetConversation() {
+  synthesis && synthesis.cancel();
+  recognition && isListening && recognition.stop();
+  eventData = {};
+  pendingConfirmation = false;
+  document.getElementById('confirmBtn').style.display = 'none';
+  document.getElementById('eventArea').innerHTML = `
+    <div class="howto">
+      <div class="howto-title">Schedule a meeting with your voice</div>
+      <div class="steps">
+        <div class="step"><div class="step-num">1</div><div class="step-text"><strong>Click the microphone</strong> to start</div></div>
+        <div class="step"><div class="step-num">2</div><div class="step-text"><strong>Tell the assistant</strong> your name, date & time</div></div>
+        <div class="step"><div class="step-num">3</div><div class="step-text"><strong>Review details</strong> and confirm</div></div>
+        <div class="step"><div class="step-num">4</div><div class="step-text"><strong>Add to calendar</strong> with one click</div></div>
+      </div>
+    </div>`;
+  startConversation();
+}
+
+function escHtml(str) {
+  return String(str).replace(/[&<>"']/g, s => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[s]));
+}
+</script>
+</body>
+</html>
