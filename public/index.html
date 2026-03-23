@@ -601,44 +601,46 @@
     }
 
     @media (max-width: 768px) {
+      html, body {
+        overflow-y: auto;
+        height: auto;
+      }
       .app {
-        grid-template-columns: 1fr;
+        display: flex;
+        flex-direction: column;
         height: auto;
         min-height: 100vh;
-        overflow-y: auto;
       }
       .sidebar {
         height: auto;
-        min-height: 100vh;
+        border-right: none;
+        border-bottom: 1px solid var(--border);
       }
       .main {
         display: flex;
-        border-top: 1px solid var(--border);
+        height: auto;
+        min-height: 400px;
       }
-      .main-header {
-        padding: 16px 20px;
+      .controls {
+        position: fixed;
+        bottom: 0;
+        left: 0;
+        right: 0;
+        z-index: 1000;
+        background: var(--surface);
+        box-shadow: 0 -10px 20px rgba(0,0,0,0.3);
+        padding: 12px 20px;
+        min-height: 70px;
       }
       .event-area {
         padding: 20px;
-      }
-      .transcript-section {
-        min-height: 150px;
-        max-height: 220px;
-        overflow: hidden;
-      }
-      .transcript-box {
-        max-height: 180px;
-        overflow-y: auto;
-      }
-      .controls {
-        position: sticky;
-        bottom: 0;
-        background: var(--surface);
-        z-index: 10;
-        padding: 12px 20px;
+        padding-bottom: 100px;
       }
       .event-title-display {
         font-size: 22px;
+      }
+      .sidebar {
+        padding-bottom: 80px;
       }
     }
   </style>
@@ -879,7 +881,9 @@ async function sendToAI(userMessage) {
     if (data.event_data) {
       eventData = data.event_data;
       renderEventCard(eventData);
-      document.getElementById('confirmBtn').style.display = '';
+      const confirmBtn = document.getElementById('confirmBtn');
+      confirmBtn.style.setProperty('display', 'flex', 'important');
+      confirmBtn.style.display = 'flex';
       pendingConfirmation = true;
     }
 
