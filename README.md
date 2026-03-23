@@ -1,5 +1,9 @@
 # VoiceSchedule — AI Voice Scheduling Agent (FastAPI Backend)
 
+
+## Loom Video
+https://www.loom.com/share/e24fa51d827140dfad03774f7a38e2a8
+
 A real-time voice assistant that schedules calendar events through natural conversation.
 Powered by **Claude AI** (via a FastAPI backend), **Web Speech API** for voice I/O, and
 calendar deep-links for Google Calendar, Outlook, and `.ics` download.
