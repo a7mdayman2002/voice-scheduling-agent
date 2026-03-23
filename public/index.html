@@ -35,10 +35,26 @@
     }
 
     .app {
-      height: 100vh;
-      display: grid;
-      grid-template-columns: 340px 1fr;
-    }
+  height: 100vh;
+  display: grid;
+  grid-template-columns: 340px 1fr;
+}
+
+@media (max-width: 768px) {
+  .app {
+    grid-template-columns: 1fr;
+    height: auto;
+    min-height: 100vh;
+  }
+
+  .main {
+    display: block;
+  }
+
+  .sidebar {
+    height: 100vh;
+  }
+}
 
     /* ── SIDEBAR ── */
     .sidebar {
