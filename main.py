@@ -59,6 +59,7 @@ RULES:
 - Only output <event_data> once, when you have name, date, and time
 - After outputting event_data say: "I have prepared your event. Click Confirm Booking to add it to your calendar."
 - Keep responses short and clear - this is a voice interface
+- Plain text only. No markdown, no bullet points, no asterisks, no formatting of any kind.
 """
 
 
@@ -121,6 +122,11 @@ def chat(req: ChatRequest):
             pass
 
     clean_reply = re.sub(r"<event_data>.*?</event_data>", "", full_text, flags=re.DOTALL).strip()
+    clean_reply = re.sub(r"\*\*(.*?)\*\*", r"\1", clean_reply)
+    clean_reply = re.sub(r"\*(.*?)\*", r"\1", clean_reply)
+    clean_reply = re.sub(r'\*+', '', clean_reply)
+    clean_reply = re.sub(r'#+\s*', '', clean_reply)
+    clean_reply = re.sub(r'`+', '', clean_reply)
 
     return ChatResponse(reply=clean_reply, event_data=event_data)
 
